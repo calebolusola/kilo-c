@@ -24,7 +24,7 @@ void enableRawMode(void) {
   // turn off canonical mode, terminal echo, and disable ctrl-c and ctrl-z
   raw.c_lflag &= ~(ECHO | ICANON | ISIG);
 
-  // set the updated terminal attributes
+  // set the updated terminal attributes.
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
