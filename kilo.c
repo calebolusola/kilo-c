@@ -24,6 +24,9 @@ void enableRawMode(void) {
   // turn off canonical mode, terminal echo, and disable ctrl-c and ctrl-z
   raw.c_lflag &= ~(ECHO | ICANON | ISIG);
 
+  raw.c_cc[VMIN] = 0;
+  raw.c_cc[VTIME] = 1;
+
   // set the updated terminal attributes.
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
@@ -31,14 +34,17 @@ void enableRawMode(void) {
 int main(void) {
   enableRawMode();
 
-  char c;
-  // read the stdin buffer continuously till we get a terminate character (q)
-  while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
+  while (1) {
+    char c = '\0';
+    // read the stdin buffer continuously till we get a terminate character (q)
+    read(STDIN_FILENO, &c, 1);
     if (iscntrl(c)) {
       printf("%d\r\n", c);
     } else {
       printf("%d ('%c')\r\n", c, c);
     }
+    if (c == 'q')
+      break;
   }
 
   return 0;
