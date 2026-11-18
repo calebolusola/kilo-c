@@ -1,4 +1,6 @@
+#include <asm-generic/errno-base.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
@@ -6,13 +8,21 @@
 
 struct termios orig_termios;
 
+void die(const char *s) {
+  perror(s);
+  exit(1);
+}
+
 void disableRawMode(void) {
-  tcsetattr(STDERR_FILENO, TCSAFLUSH, &orig_termios);
+  if (tcsetattr(STDERR_FILENO, TCSAFLUSH, &orig_termios) == -1)
+    die("tcsetattr");
 }
 
 void enableRawMode(void) {
   // get the current terminal attributes
-  tcgetattr(STDIN_FILENO, &orig_termios);
+  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+    die("tcgetattr");
+
   // restore original settings when the program exits normally
   atexit(disableRawMode);
 
@@ -24,11 +34,14 @@ void enableRawMode(void) {
   // turn off canonical mode, terminal echo, and disable ctrl-c and ctrl-z
   raw.c_lflag &= ~(ECHO | ICANON | ISIG);
 
-  raw.c_cc[VMIN] = 0; // min bytes of input needed before read() can return to 0 (return as soon as there's any input to read)
-  raw.c_cc[VTIME] = 1; // max amount of time to wait before read() returns (set to 100ms)
+  raw.c_cc[VMIN] = 0; // min bytes of input needed before read() can return to 0
+                      // (return as soon as there's any input to read)
+  raw.c_cc[VTIME] =
+      1; // max amount of time to wait before read() returns (set to 100ms)
 
   // set the updated terminal attributes.
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+    die("tcsetattr");
 }
 
 int main(void) {
@@ -37,7 +50,8 @@ int main(void) {
   while (1) {
     char c = '\0';
     // read the stdin buffer continuously till we get a terminate character (q)
-    read(STDIN_FILENO, &c, 1);
+    if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
+      die("read failure");
     if (iscntrl(c)) {
       printf("%d\r\n", c);
     } else {
