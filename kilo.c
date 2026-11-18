@@ -24,8 +24,8 @@ void enableRawMode(void) {
   // turn off canonical mode, terminal echo, and disable ctrl-c and ctrl-z
   raw.c_lflag &= ~(ECHO | ICANON | ISIG);
 
-  raw.c_cc[VMIN] = 0;
-  raw.c_cc[VTIME] = 1;
+  raw.c_cc[VMIN] = 0; // min bytes of input needed before read() can return to 0 (return as soon as there's any input to read)
+  raw.c_cc[VTIME] = 1; // max amount of time to wait before read() returns (set to 100ms)
 
   // set the updated terminal attributes.
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
